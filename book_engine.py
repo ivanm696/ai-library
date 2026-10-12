@@ -1,271 +1,321 @@
 # -*- coding: utf-8 -*-
-"""
-Общий движок для серии книг «Библиотека ИИ» (5 книг).
-Регистрирует шрифты DejaVu (полная поддержка кириллицы), задаёт стили,
-и даёт вспомогательные функции: code_block, note_block, level_badge,
-h_section, cover_page, PageNumCanvas, build_book.
+"""Общий модуль для генерации PDF-книг библиотеки ИИ.
+
+Шрифты DejaVu (с поддержкой кириллицы), единые стили, цветовая палитра
+и функция build_book(), которая собирает готовый PDF с колонтитулами.
 """
 
 import os
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib import colors
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    HRFlowable, ListFlowable, ListItem, PageBreak
+    Paragraph, Spacer, Table, TableStyle, PageBreak,
+    HRFlowable, ListFlowable, ListItem, KeepTogether,
 )
-from reportlab.pdfgen import canvas as pdfcanvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus.doctemplate import PageTemplate, BaseDocTemplate
+from reportlab.platypus.frames import Frame
 
-# ----------------------------------------------------------------------
-# Шрифты
-# ----------------------------------------------------------------------
+# ── Шрифты DejaVu (кириллица) ────────────────────────────────────────
 FONT_DIR = "/usr/share/fonts/truetype/dejavu"
+if not os.path.isdir(FONT_DIR):
+    # fallback — относительно файла (локальный копий шрифтов может не быть)
+    FONT_DIR = os.path.join(os.path.dirname(__file__), "fonts")
 
-pdfmetrics.registerFont(TTFont("DejaVu", os.path.join(FONT_DIR, "DejaVuSans.ttf")))
-pdfmetrics.registerFont(TTFont("DejaVu-Bold", os.path.join(FONT_DIR, "DejaVuSans-Bold.ttf")))
-pdfmetrics.registerFont(TTFont("DejaVu-Oblique", os.path.join(FONT_DIR, "DejaVuSans-Oblique.ttf")))
-pdfmetrics.registerFont(TTFont("DejaVuMono", os.path.join(FONT_DIR, "DejaVuSansMono.ttf")))
-pdfmetrics.registerFont(TTFont("DejaVuMono-Bold", os.path.join(FONT_DIR, "DejaVuSansMono-Bold.ttf")))
+_FONTS = {
+    "DejaVu":            "DejaVuSans.ttf",
+    "DejaVu-Bold":       "DejaVuSans-Bold.ttf",
+    "DejaVuMono":        "DejaVuSansMono.ttf",
+    "DejaVuMono-Bold":   "DejaVuSansMono-Bold.ttf",
+    "DejaVuSerif":       "DejaVuSerif.ttf",
+    "DejaVuSerif-Bold":  "DejaVuSerif-Bold.ttf",
+}
+for _name, _file in _FONTS.items():
+    try:
+        pdfmetrics.registerFont(TTFont(_name, os.path.join(FONT_DIR, _file)))
+    except Exception:
+        pass
 
-# ----------------------------------------------------------------------
-# Палитра
-# ----------------------------------------------------------------------
-INK = colors.HexColor("#1a1a2e")
-INK2 = colors.HexColor("#4a4a68")
-ACCENT = colors.HexColor("#5b3cc4")
-ACCENT2 = colors.HexColor("#1f8a70")
-CODE_BG = colors.HexColor("#f4f2fb")
-CODE_LN = colors.HexColor("#d9d2f0")
-NOTE_BG = colors.HexColor("#fff6e0")
-NOTE_LN = colors.HexColor("#f0dca0")
+# ── Палитра ──────────────────────────────────────────────────────────
+ACCENT          = colors.HexColor("#2563EB")   # синий — основной акцент
+ACCENT_DARK     = colors.HexColor("#1E40AF")
+LEVEL_BEGINNER  = colors.HexColor("#16A34A")   # зелёный
+LEVEL_INTER     = colors.HexColor("#EA580C")   # оранжевый
+LEVEL_ADVANCED  = colors.HexColor("#DC2626")   # красный
+CODE_LN         = colors.HexColor("#E5E7EB")   # светло-серый для линий
+INK             = colors.HexColor("#1F2937")   # тёмно-серый — основной текст
+INK2            = colors.HexColor("#6B7280")   # серый — вторичный текст
+PAPER           = colors.HexColor("#FFFFFF")
+SOFT_BG         = colors.HexColor("#F3F4F6")   # светло-серый фон блоков
+WARN_BG         = colors.HexColor("#FEF3C7")   # жёлтый фон для предупреждений
+TIP_BG          = colors.HexColor("#DBEAFE")   # голубой фон для советов
+DANGER_BG       = colors.HexColor("#FEE2E2")   # красный фон для предостережений
 
-LEVEL_BEGINNER = colors.HexColor("#1f8a70")
-LEVEL_INTER = colors.HexColor("#c47f17")
-LEVEL_ADVANCED = colors.HexColor("#c43c3c")
-
-
-def make_styles():
+# ── Стили ────────────────────────────────────────────────────────────
+def _build_styles():
+    ss = getSampleStyleSheet()
+    base = dict(fontName="DejaVu", fontSize=10.5, leading=15.5,
+                textColor=INK, alignment=TA_JUSTIFY, spaceBefore=0, spaceAfter=4)
     S = {}
-    S["BookTitle"] = ParagraphStyle(
-        "BookTitle", fontName="DejaVu-Bold", fontSize=30, leading=36,
-        textColor=INK, alignment=TA_CENTER, spaceAfter=10,
-    )
-    S["BookSubtitle"] = ParagraphStyle(
-        "BookSubtitle", fontName="DejaVu-Oblique", fontSize=15, leading=20,
-        textColor=INK2, alignment=TA_CENTER, spaceAfter=18,
-    )
-    S["VolTag"] = ParagraphStyle(
-        "VolTag", fontName="DejaVu-Bold", fontSize=12, leading=14,
-        textColor=colors.white, alignment=TA_CENTER,
-    )
-    S["Cover"] = ParagraphStyle(
-        "Cover", fontName="DejaVu", fontSize=12, leading=16,
-        textColor=INK2, alignment=TA_CENTER,
-    )
-    S["H1"] = ParagraphStyle(
-        "H1", fontName="DejaVu-Bold", fontSize=18, leading=22,
-        textColor=ACCENT, spaceBefore=18, spaceAfter=10,
-    )
-    S["H2"] = ParagraphStyle(
-        "H2", fontName="DejaVu-Bold", fontSize=13, leading=17,
-        textColor=INK, spaceBefore=12, spaceAfter=6,
-    )
-    S["H3"] = ParagraphStyle(
-        "H3", fontName="DejaVu-Bold", fontSize=11.5, leading=15,
-        textColor=ACCENT2, spaceBefore=8, spaceAfter=4,
-    )
-    S["Body"] = ParagraphStyle(
-        "Body", fontName="DejaVu", fontSize=10.5, leading=15.5,
-        textColor=INK, alignment=TA_JUSTIFY, spaceAfter=7,
-    )
-    S["Bullet"] = ParagraphStyle(
-        "Bullet", fontName="DejaVu", fontSize=10.5, leading=15,
-        textColor=INK, alignment=TA_JUSTIFY, spaceAfter=3, leftIndent=4,
-    )
-    S["Code"] = ParagraphStyle(
-        "Code", fontName="DejaVuMono", fontSize=8.7, leading=12.5,
-        textColor=INK, backColor=CODE_BG,
-        borderPadding=(8, 8, 8, 8), borderWidth=0.75, borderColor=CODE_LN,
-        spaceBefore=6, spaceAfter=10,
-    )
-    S["Note"] = ParagraphStyle(
-        "Note", fontName="DejaVu", fontSize=9.7, leading=13.5,
-        textColor=INK, backColor=NOTE_BG,
-        borderPadding=(8, 8, 8, 8), borderWidth=0.75, borderColor=NOTE_LN,
-        spaceBefore=6, spaceAfter=10,
-    )
-    S["TocEntry"] = ParagraphStyle(
-        "TocEntry", fontName="DejaVu", fontSize=10.5, leading=16,
-        textColor=INK,
-    )
-    S["TocH1"] = ParagraphStyle(
-        "TocH1", fontName="DejaVu-Bold", fontSize=12.5, leading=18,
-        textColor=ACCENT, spaceBefore=10,
-    )
-    S["Small"] = ParagraphStyle(
-        "Small", fontName="DejaVu", fontSize=8.5, leading=11,
-        textColor=INK2,
-    )
-    S["Cell"] = ParagraphStyle(
-        "Cell", fontName="DejaVu", fontSize=8.5, leading=11.5,
-        textColor=INK,
-    )
-    S["CellHead"] = ParagraphStyle(
-        "CellHead", fontName="DejaVu-Bold", fontSize=8.5, leading=11.5,
-        textColor=colors.white,
-    )
+    S["Body"] = ParagraphStyle("Body", **base)
+    S["BodyLeft"] = ParagraphStyle("BodyLeft", **{**base, "alignment": TA_LEFT})
+    S["Small"] = ParagraphStyle("Small", parent=ss["Normal"],
+        fontName="DejaVu", fontSize=8.5, leading=12, textColor=INK2)
+    S["BookTitle"] = ParagraphStyle("BookTitle", parent=ss["Title"],
+        fontName="DejaVu-Bold", fontSize=26, leading=32, textColor=ACCENT_DARK,
+        alignment=TA_CENTER, spaceAfter=8)
+    S["BookSubtitle"] = ParagraphStyle("BookSubtitle", parent=ss["Normal"],
+        fontName="DejaVu", fontSize=12, leading=16, textColor=INK2,
+        alignment=TA_CENTER, spaceAfter=10)
+    S["Cover"] = ParagraphStyle("Cover", parent=ss["Normal"],
+        fontName="DejaVu", fontSize=10, leading=14, textColor=INK2,
+        alignment=TA_CENTER)
+    S["H1"] = ParagraphStyle("H1", parent=ss["Heading1"],
+        fontName="DejaVu-Bold", fontSize=18, leading=24, textColor=ACCENT_DARK,
+        spaceBefore=16, spaceAfter=8, alignment=TA_LEFT)
+    S["H2"] = ParagraphStyle("H2", parent=ss["Heading2"],
+        fontName="DejaVu-Bold", fontSize=14, leading=18, textColor=ACCENT,
+        spaceBefore=12, spaceAfter=6, alignment=TA_LEFT)
+    S["H3"] = ParagraphStyle("H3", parent=ss["Heading3"],
+        fontName="DejaVu-Bold", fontSize=11.5, leading=15, textColor=INK,
+        spaceBefore=8, spaceAfter=4, alignment=TA_LEFT)
+    S["Code"] = ParagraphStyle("Code", parent=ss["Code"],
+        fontName="DejaVuMono", fontSize=8.5, leading=12, textColor=INK,
+        backColor=SOFT_BG, borderColor=CODE_LN, borderWidth=0.5,
+        borderPadding=6, leftIndent=4, rightIndent=4, spaceBefore=4, spaceAfter=8)
+    S["Quote"] = ParagraphStyle("Quote", parent=ss["Normal"],
+        fontName="DejaVuSerif", fontSize=10.5, leading=15.5, textColor=INK2,
+        leftIndent=14, rightIndent=14, spaceBefore=6, spaceAfter=6,
+        alignment=TA_LEFT, borderPadding=4)
+    S["Caption"] = ParagraphStyle("Caption", parent=ss["Normal"],
+        fontName="DejaVu", fontSize=8.5, leading=11, textColor=INK2,
+        alignment=TA_CENTER, spaceAfter=6)
+    S["White"] = ParagraphStyle("White", parent=ss["Normal"],
+        fontName="DejaVu", fontSize=10, leading=14, textColor=colors.white)
+    S["WhiteBold"] = ParagraphStyle("WhiteBold", parent=ss["Normal"],
+        fontName="DejaVu-Bold", fontSize=11, leading=15, textColor=colors.white)
     return S
 
+STYLES = _build_styles()
+S = STYLES  # short alias for convenience
 
-# ----------------------------------------------------------------------
-# Вспомогательные блоки
-# ----------------------------------------------------------------------
+# ── Уровни ───────────────────────────────────────────────────────────
+LEVEL_LABELS = {
+    LEVEL_BEGINNER:  ("Начинающий", "#16A34A"),
+    LEVEL_INTER:     ("Средний",    "#EA580C"),
+    LEVEL_ADVANCED:  ("Продвинутый","#DC2626"),
+}
 
-def level_badge(text, color):
-    t = Table([[text]], colWidths=[32 * mm], rowHeights=[6.5 * mm])
+def level_badge(label, color):
+    """Возвращает Table с цветным бейджем уровня."""
+    t = Table([[Paragraph(
+        f'<font name="DejaVu-Bold" size="8" color="white">{label}</font>',
+        STYLES["White"])]], colWidths=[32 * mm], rowHeights=[8 * mm])
     t.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), color),
-        ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
-        ("FONTNAME", (0, 0), (-1, -1), "DejaVu-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ROUNDEDCORNERS", [3, 3, 3, 3]),
+        ("LEFTPADDING", (0, 0), (-1, -1), 3),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+        ("TOPPADDING", (0, 0), (-1, -1), 1),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
     ]))
     return t
 
-
-def code_block(code_text, style=None):
-    """
-    Преобразует блок кода в Paragraph, сохраняя ведущие пробелы (отступы).
-    Экранирует HTML-спецсимволы ПЕРЕД подсчётом отступа, чтобы не задвоить
-    экранирование и не терять реальные пробелы.
-    """
-    lines = []
-    for ln in code_text.split("\n"):
-        stripped = ln.lstrip(" ")
-        indent = len(ln) - len(stripped)
-        safe = (
-            stripped.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-        )
-        lines.append("&nbsp;" * indent + safe)
-    return Paragraph("<br/>".join(lines), style or _STYLES["Code"])
-
+# ── Хелперы для контента ─────────────────────────────────────────────
 
 def wrap_cells(rows):
-    """
-    Оборачивает каждую ячейку таблицы в Paragraph, чтобы длинный текст
-    переносился внутри своей колонки, а не "наезжал" на соседнюю
-    (обычные строки в Table не переносятся по словам).
-    Первая строка считается заголовком (жирный белый текст на цветном фоне).
-    """
-    out = []
-    for i, row in enumerate(rows):
-        style = _STYLES["CellHead"] if i == 0 else _STYLES["Cell"]
-        out.append([Paragraph(str(c), style) for c in row])
-    return out
+    """Оборачивает строковые ячейки таблицы в Paragraph."""
+    result = []
+    for row in rows:
+        new_row = []
+        for cell in row:
+            if isinstance(cell, str):
+                new_row.append(Paragraph(cell, STYLES["Small"]))
+            else:
+                new_row.append(cell)
+        result.append(new_row)
+    return result
 
 
-def note_block(text, label="Примечание"):
-    return Paragraph(f"<b>{label}.</b> {text}", _STYLES["Note"])
+def code_block(text):
+    """Блок кода с моноширинным шрифтом."""
+    escaped = (text.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;"))
+    lines = escaped.split("\n")
+    html = "<br/>".join(lines)
+    return Paragraph(html, STYLES["Code"])
 
 
-def h_section(number, title, level_color=None, level_text=None):
-    if level_color is None:
-        return Paragraph(f"{number}. {title}", _STYLES["H1"])
-    left = Paragraph(f"{number}. {title}", _STYLES["H1"])
-    right = level_badge(level_text, level_color)
-    t = Table([[left, right]], colWidths=[132 * mm, 34 * mm])
+def bullet_list(items, style=None):
+    """Маркированный список."""
+    style = style or STYLES["Body"]
+    items_flow = [ListItem(Paragraph(item, style), leftIndent=6,
+                           value="bullet", bulletColor=ACCENT)
+                  for item in items]
+    return ListFlowable(items_flow, bulletType="bullet", start="•",
+                        bulletFontSize=8, leftIndent=14, bulletOffsetY=-1)
+
+
+def numbered_list(items, style=None):
+    """Нумерованный список."""
+    style = style or STYLES["Body"]
+    items_flow = [ListItem(Paragraph(item, style), leftIndent=6)
+                  for item in items]
+    return ListFlowable(items_flow, bulletType="1", bulletFormat="%s.",
+                        leftIndent=18, bulletFontSize=10)
+
+
+def callout(title, text, bg_color=TIP_BG, icon="💡"):
+    """Цветной блок-выноска (совет, предупреждение, предостережение)."""
+    inner = Table([[
+        Paragraph(f'<font name="DejaVu-Bold" size="10">{icon} {title}</font>',
+                  STYLES["BodyLeft"]),
+    ], [
+        Paragraph(text, STYLES["BodyLeft"]),
+    ]], colWidths=[160 * mm])
+    inner.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), bg_color),
+        ("BOX", (0, 0), (-1, -1), 0.5, CODE_LN),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LINEBELOW", (0, 0), (-1, 0), 0.3, CODE_LN),
+    ]))
+    return KeepTogether([Spacer(1, 3 * mm), inner, Spacer(1, 3 * mm)])
+
+
+def key_takeaways(items):
+    """Блок «Ключевые выводы» в конце главы."""
+    rows = [[Paragraph(
+        '<font name="DejaVu-Bold" color="white" size="11">Ключевые выводы</font>',
+        STYLES["WhiteBold"])]]
+    for item in items:
+        rows.append([Paragraph(f"• {item}", STYLES["BodyLeft"])])
+    t = Table(rows, colWidths=[160 * mm])
     t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), ACCENT),
+        ("BACKGROUND", (0, 1), (-1, -1), SOFT_BG),
+        ("BOX", (0, 0), (-1, -1), 0.5, CODE_LN),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    return KeepTogether([Spacer(1, 4 * mm), t, Spacer(1, 4 * mm)])
+
+
+def chapter_header(num, title, subtitle="", level_color=ACCENT):
+    """Заголовок главы: номер в круге + название."""
+    num_para = Paragraph(
+        f'<font name="DejaVu-Bold" size="9" color="white">{num}</font>',
+        STYLES["WhiteBold"])
+    circle = Table([[num_para]], colWidths=[12 * mm], rowHeights=[12 * mm])
+    circle.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), level_color),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+        ("ROUNDEDCORNERS", [6, 6, 6, 6]),
+    ]))
+    title_block = Table([
+        [circle, Paragraph(title, STYLES["H1"])],
+        ["", Paragraph(subtitle, STYLES["Small"]) if subtitle else ""],
+    ], colWidths=[16 * mm, 150 * mm])
+    title_block.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("SPAN", (0, 0), (0, 1)),
         ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
         ("TOPPADDING", (0, 0), (-1, -1), 0),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
     ]))
+    return KeepTogether([
+        title_block,
+        Spacer(1, 2 * mm),
+        HRFlowable(width="100%", thickness=0.8, color=CODE_LN, spaceAfter=8),
+    ])
+
+
+def two_col_table(rows, col_widths=None, header=True):
+    """Простая таблица с шапкой."""
+    cw = col_widths or [80 * mm, 80 * mm]
+    t = Table(wrap_cells(rows), colWidths=cw)
+    style = [
+        ("FONTNAME", (0, 0), (-1, -1), "DejaVu"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("GRID", (0, 0), (-1, -1), 0.4, CODE_LN),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+    ]
+    if header:
+        style += [
+            ("BACKGROUND", (0, 0), (-1, 0), ACCENT),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "DejaVu-Bold"),
+        ]
+    t.setStyle(TableStyle(style))
     return t
 
 
-def cover_page(vol_num, vol_tag, title, subtitle, level_range, color):
-    flow = []
-    flow.append(Spacer(1, 55 * mm))
-    tag_table = Table([[f"КНИГА {vol_num}"]], colWidths=[40 * mm], rowHeights=[9 * mm])
-    tag_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), color),
-        ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
-        ("FONTNAME", (0, 0), (-1, -1), "DejaVu-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 11),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ]))
-    centered = Table([[tag_table]], colWidths=[170 * mm])
-    centered.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER")]))
-    flow.append(centered)
-    flow.append(Spacer(1, 10 * mm))
-    flow.append(Paragraph(title, _STYLES["BookTitle"]))
-    flow.append(Paragraph(subtitle, _STYLES["BookSubtitle"]))
-    flow.append(Spacer(1, 6 * mm))
-    flow.append(HRFlowable(width="40%", thickness=1.2, color=color, spaceAfter=6, hAlign="CENTER"))
-    flow.append(Paragraph(f"Уровень: {level_range}", _STYLES["Cover"]))
-    flow.append(Paragraph("Библиотека ИИ · 5 книг · все уровни и категории", _STYLES["Cover"]))
-    flow.append(PageBreak())
-    return flow
+# ── Документ с колонтитулами ─────────────────────────────────────────
+
+class _BookDoc(BaseDocTemplate):
+    """DocTemplate с верхним и нижним колонтитулами."""
+
+    def __init__(self, filename, book_title, footer_label, **kw):
+        self._book_title = book_title
+        self._footer_label = footer_label
+        BaseDocTemplate.__init__(self, filename, **kw)
+        frame = Frame(self.leftMargin, self.bottomMargin,
+                      self.width, self.height, id="main")
+        self.addPageTemplates([
+            PageTemplate(id="book", frames=[frame], onPage=self._draw_decor)
+        ])
+
+    def _draw_decor(self, canvas, doc):
+        canvas.saveState()
+        w, h = A4
+        # верхняя полоса
+        canvas.setFillColor(ACCENT)
+        canvas.rect(0, h - 12 * mm, w, 12 * mm, fill=1, stroke=0)
+        canvas.setFillColor(colors.white)
+        canvas.setFont("DejaVu", 8)
+        canvas.drawString(20 * mm, h - 8 * mm, self._book_title)
+        canvas.drawRightString(w - 20 * mm, h - 8 * mm, self._footer_label)
+        # нижний колонтитул
+        canvas.setStrokeColor(CODE_LN)
+        canvas.setLineWidth(0.4)
+        canvas.line(20 * mm, 14 * mm, w - 20 * mm, 14 * mm)
+        canvas.setFillColor(INK2)
+        canvas.setFont("DejaVu", 8)
+        canvas.drawString(20 * mm, 9 * mm, "Библиотека ИИ")
+        canvas.drawRightString(w - 20 * mm, 9 * mm, f"Стр. {doc.page}")
+        canvas.restoreState()
 
 
-class PageNumCanvas(pdfcanvas.Canvas):
-    book_short_tag = ""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._saved_page_states = []
-
-    def showPage(self):
-        self._saved_page_states.append(dict(self.__dict__))
-        self._startPage()
-
-    def save(self):
-        num_pages = len(self._saved_page_states)
-        for i, state in enumerate(self._saved_page_states):
-            self.__dict__.update(state)
-            self.draw_footer(i + 1, num_pages)
-            super().showPage()
-        super().save()
-
-    def draw_footer(self, page_num, total_pages):
-        if page_num == 1:
-            return
-        self.setStrokeColor(CODE_LN)
-        self.setLineWidth(0.5)
-        self.line(20 * mm, 16 * mm, 190 * mm, 16 * mm)
-        self.setFont("DejaVu", 8)
-        self.setFillColor(INK2)
-        self.drawString(20 * mm, 11 * mm, self.book_short_tag)
-        self.drawRightString(190 * mm, 11 * mm, f"стр. {page_num}")
-
-
-def make_canvas_factory(book_short_tag):
-    class _Canvas(PageNumCanvas):
-        pass
-    _Canvas.book_short_tag = book_short_tag
-    return _Canvas
-
-
-def build_book(filename, title, subtitle, vol_tag, story, book_short_tag):
-    doc = SimpleDocTemplate(
-        filename, pagesize=A4,
-        topMargin=18 * mm, bottomMargin=20 * mm,
+def build_book(filename, series_title, book_title, book_code, story,
+               footer_label, output_dir=None):
+    """Собирает PDF из story (список Flowable)."""
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+        filename = os.path.join(output_dir, filename)
+    doc = _BookDoc(
+        filename, series_title, footer_label,
+        pagesize=A4,
         leftMargin=20 * mm, rightMargin=20 * mm,
-        title=title, author="Библиотека ИИ",
+        topMargin=18 * mm, bottomMargin=18 * mm,
+        title=f"{series_title} — {book_title}",
+        author="Библиотека ИИ",
     )
-    canvas_cls = make_canvas_factory(book_short_tag)
-    doc.build(story, canvasmaker=canvas_cls)
-
-
-_STYLES = make_styles()
-STYLES = _STYLES
+    doc.build(story)
+    print(f"  ✓ {filename}")
+    return filename
