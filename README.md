@@ -13,12 +13,12 @@
 
 | № | Книга | Файл | О чём | Уровень |
 |---|---|---|---|---|
-| — | **Каталог** | [`Kniga-0-Katalog-Biblioteki.pdf`](Kniga-0-Katalog-Biblioteki.pdf) | Обзор всей серии, порядок чтения, обозначения уровней | — |
-| 1 | **Основы искусственного интеллекта** | [`Kniga-1-Osnovy-II.pdf`](Kniga-1-Osnovy-II.pdf) | Что такое ИИ, краткая история, машинное обучение, нейросети и LLM простыми словами, чат-бот vs ассистент vs агент, мифы об ИИ, словарь терминов | Начинающий |
-| 2 | **Промпт-инжиниринг** | [`Kniga-2-Prompt-Inzhiniring.pdf`](Kniga-2-Prompt-Inzhiniring.pdf) | Базовые принципы, zero/few-shot, Chain-of-Thought, системные промпты, структурированный JSON-вывод, продвинутые техники (ReAct, self-consistency) | Начинающий — Продвинутый |
-| 3 | **Архитектура нейросетей и трансформеров** | [`Kniga-3-Arhitektura-Transformerov.pdf`](Kniga-3-Arhitektura-Transformerov.pdf) | Нейрон и функции активации, обратное распространение, механизм внимания, полный блок трансформера, токенизация, эмбеддинги, RLHF, законы масштабирования, архитектурные ограничения | Средний — Продвинутый |
-| 4 | **Практическое применение ИИ** | [`Kniga-4-Prakticheskoe-Primenenie.pdf`](Kniga-4-Prakticheskoe-Primenenie.pdf) | Карта инструментов, API vs чат-интерфейс, агенты на практике, RAG, автоматизация, безопасная интеграция (ключи, лимиты, логирование) | Начинающий — Продвинутый |
-| 5 | **Этика, безопасность и ограничения ИИ** | [`Kniga-5-Etika-i-Bezopasnost.pdf`](Kniga-5-Etika-i-Bezopasnost.pdf) | Предвзятость, приватность, дезинформация и дипфейки, влияние на рынок труда, AI alignment, обзор регулирования, принципы ответственного использования | Начинающий — Продвинутый |
+| — | **Каталог** | [`Kniga-0-Katalog-Biblioteki.pdf`](pdf/Kniga-0-Katalog-Biblioteki.pdf) | Обзор всей серии, порядок чтения, обозначения уровней | Базовый |
+| 1 | **Основы искусственного интеллекта** | [`Kniga-1-Osnovy-Iskusstvennogo-Intellekta.pdf`](pdf/Kniga-1-Osnovy-Iskusstvennogo-Intellekta.pdf) | Что такое ИИ, краткая история, машинное обучение, нейросети | Базовый |
+| 2 | **Промпт-инжиниринг** | [`Kniga-2-Prompt-Inzhiniring.pdf`](pdf/Kniga-2-Prompt-Inzhiniring.pdf) | Базовые принципы, zero/few-shot, Chain-of-Thought, системный промптинг | Базовый |
+| 3 | **Архитектура нейросетей и трансформеров** | [`Kniga-3-Arkhitektura-Neirosetey-i-Transformerov.pdf`](pdf/Kniga-3-Arkhitektura-Neirosetey-i-Transformerov.pdf) | Нейрон, архитектуры, трансформеры, обучение и масштабирование | Продвинутый |
+| 4 | **Практическое применение ИИ** | [`Kniga-4-Prakticheskoe-Primenenie-II.pdf`](pdf/Kniga-4-Prakticheskoe-Primenenie-II.pdf) | Карта инструментов, API, автоматизация, рабочие сценарии | Практический |
+| 5 | **Этика, безопасность и ограничения ИИ** | [`Kniga-5-Etika-Bezopasnost-i-Ogranicheniya-II.pdf`](pdf/Kniga-5-Etika-Bezopasnost-i-Ogranicheniya-II.pdf) | Предвзятость, приватность, риски, ответственность, ограничения | Все уровни |
 
 ## Как читать
 
@@ -34,12 +34,12 @@
 
 ```
 book_engine.py        — общий движок (шрифты, стили, таблицы, обложки, футер/нумерация страниц)
-book0_catalog.py       -> Kniga-0-Katalog-Biblioteki.pdf
-book1_fundamentals.py  -> Kniga-1-Osnovy-II.pdf
-book2_prompting.py     -> Kniga-2-Prompt-Inzhiniring.pdf
-book3_architecture.py  -> Kniga-3-Arhitektura-Transformerov.pdf
-book4_practice.py      -> Kniga-4-Prakticheskoe-Primenenie.pdf
-book5_ethics.py        -> Kniga-5-Etika-i-Bezopasnost.pdf
+book0_catalog.py      -> pdf/Kniga-0-Katalog-Biblioteki.pdf
+book1_fundamentals.py -> pdf/Kniga-1-Osnovy-Iskusstvennogo-Intellekta.pdf
+book2_prompting.py    -> pdf/Kniga-2-Prompt-Inzhiniring.pdf
+book3_architecture.py -> pdf/Kniga-3-Arkhitektura-Neirosetey-i-Transformerov.pdf
+book4_practice.py     -> pdf/Kniga-4-Prakticheskoe-Primenenie-II.pdf
+book5_ethics.py       -> pdf/Kniga-5-Etika-Bezopasnost-i-Ogranicheniya-II.pdf
 ```
 
 ## Пересборка PDF локально
