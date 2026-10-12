@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ai-library — Библиотека ИИ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+        .content {
+            padding: 50px 40px;
+        }
+        .intro {
+            font-size: 1.05em;
+            line-height: 1.8;
+            color: #333;
+            margin-bottom: 40px;
+        }
+        .books {
+            display: grid;
+            gap: 25px;
+        }
+        .book-item {
+            padding: 25px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .book-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+            transform: translateY(-2px);
+        }
+        .book-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            font-weight: bold;
+            margin-right: 15px;
+            font-size: 0.9em;
+        }
+        .book-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .book-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+        }
+        .book-level {
+            display: inline-block;
+            background: #f0f0f0;
+            color: #666;
+            font-size: 0.85em;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-left: auto;
+        }
+        .book-desc {
+            color: #666;
+            line-height: 1.6;
+            margin: 12px 0;
+            font-size: 0.95em;
+        }
+        .book-download {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background 0.3s ease;
+            margin-top: 10px;
+            font-size: 0.95em;
+        }
+        .book-download:hover {
+            background: #764ba2;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 30px 40px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 ai-library</h1>
+            <p>Независимая обучающая библиотека об искусственном интеллекте</p>
+        </div>
+        
+        <div class="content">
+            <div class="intro">
+                <strong>5 книг в формате PDF</strong>, покрывающих все уровни (от новичка до продвинутого) и категории (теория, практика, этика) в одной связной серии.
+                <br><br>
+                Все книги сгенерированы из Python-скриптов (ReportLab) с полной поддержкой кириллицы, единым визуальным стилем и автоматической нумерацией страниц.
+            </div>
+            
+            <div class="books">
+                <div class="book-item">
+                    <div class="book-header">
+                        <span class="book-number">0</span>
+                        <span class="book-title">Каталог</span>
+                        <span class="book-level">Справочник</span>
+                    </div>
+                    <div class="book-desc">Обзор всей серии, порядок чтения, обозначения уровней</div>
+                    <a href="pdf/Kniga-0-Katalog-Biblioteki.pdf" class="book-download">📥 Скачать PDF</a>
+                </div>
+
+                <div class="book-item">
+                    <div class="book-header">
+                        <span class="book-number">1</span>
+                        <span class="book-title">Основы искусственного интеллекта</span>
+                        <span class="book-level">Начинающий</span>
+                    </div>
+                    <div class="book-desc">Что такое ИИ, краткая история, машинное обучение, нейросети и LLM простыми словами, чат-бот vs ассистент vs агент, мифы об ИИ, словарь терминов</div>
+                    <a href="pdf/Kniga-1-Osnovy-Iskusstvennogo-Intellekta.pdf" class="book-download">📥 Скачать PDF</a>
+                </div>
+
+                <div class="book-item">
+                    <div class="book-header">
+                        <span class="book-number">2</span>
+                        <span class="book-title">Промпт-инжиниринг</span>
+                        <span class="book-level">Начинающий — Продвинутый</span>
+                    </div>
+                    <div class="book-desc">Базовые принципы, zero/few-shot, Chain-of-Thought, системные промпты, структурированный JSON-вывод, продвинутые техники (ReAct, self-consistency)</div>
+                    <a href="pdf/Kniga-2-Prompt-Inzhiniring.pdf" class="book-download">📥 Скачать PDF</a>
+                </div>
+
+                <div class="book-item">
+                    <div class="book-header">
+                        <span class="book-number">3</span>
+                        <span class="book-title">Архитектура нейросетей и трансформеров</span>
+                        <span class="book-level">Средний — Продвинутый</span>
+                    </div>
+                    <div class="book-desc">Нейрон и функции активации, обратное распространение, механизм внимания, полный блок трансформера, токенизация, эмбеддинги, RLHF, законы масштабирования, архитектурные ограничения</div>
+                    <a href="pdf/Kniga-3-Arkhitektura-Neirosetey-i-Transformerov.pdf" class="book-download">📥 Скачать PDF</a>
+                </div>
+
+                <div class="book-item">
+                    <div class="book-header">
+                        <span class="book-number">4</span>
+                        <span class="book-title">Практическое применение ИИ</span>
+                        <span class="book-level">Начинающий — Продвинутый</span>
+                    </div>
+                    <div class="book-desc">Карта инструментов, API vs чат-интерфейс, агенты на практике, RAG, автоматизация, безопасная интеграция (ключи, лимиты, логирование)</div>
+                    <a href="pdf/Kniga-4-Prakticheskoe-Primenenie-II.pdf" class="book-download">📥 Скачать PDF</a>
+                </div>
+
+                <div class="book-item">
+                    <div class="book-header">
+                        <span class="book-number">5</span>
+                        <span class="book-title">Этика, безопасность и ограничения ИИ</span>
+                        <span class="book-level">Все уровни</span>
+                    </div>
+                    <div class="book-desc">Предвзятость, приватность, риски, ответственность, ограничения моделей, как не навредить</div>
+                    <a href="pdf/Kniga-5-Etika-Bezopasnost-i-Ogranicheniya-II.pdf" class="book-download">📥 Скачать PDF</a>
+                </div>
+            </div>
+
+            <div style="margin-top: 50px; padding: 30px; background: #f8f9fa; border-radius: 8px;">
+                <h3 style="margin-bottom: 15px; color: #333;">📖 Как читать</h3>
+                <ul style="color: #666; line-height: 2; margin-left: 20px;">
+                    <li><strong>Книга 1</strong> — общая карта понятий, без предварительных знаний</li>
+                    <li><strong>Книга 2</strong> — практический навык работы с ИИ прямо сейчас</li>
+                    <li><strong>Книга 4</strong> — как применять это в инструментах, API и автоматизации</li>
+                    <li><strong>Книга 5</strong> — на что обращать внимание с точки зрения рисков и ответственности</li>
+                    <li><strong>Книга 3</strong> — техническая «начинка» языковых моделей; можно читать в любой момент отдельно</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Контент создан для свободного личного и образовательного использования</p>
+            <p style="margin-top: 15px;">
+                <a href="https://github.com/ivanm696/ai-library">→ GitHub Repository</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
