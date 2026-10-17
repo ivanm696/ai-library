@@ -54,6 +54,7 @@ LEVEL_ADVANCED = colors.HexColor("#c43c3c")
 
 
 def make_styles():
+    """Return a fresh mapping of named paragraph styles for the book series."""
     S = {}
     S["BookTitle"] = ParagraphStyle(
         "BookTitle", fontName="DejaVu-Bold", fontSize=30, leading=36,
@@ -131,6 +132,7 @@ def make_styles():
 # ----------------------------------------------------------------------
 
 def level_badge(text, color):
+    """Return a 32 by 6.5 mm badge with white text on a ``color`` background."""
     t = Table([[text]], colWidths=[32 * mm], rowHeights=[6.5 * mm])
     t.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), color),
@@ -144,10 +146,10 @@ def level_badge(text, color):
 
 
 def code_block(code_text, style=None):
-    """
-    Преобразует блок кода в Paragraph, сохраняя ведущие пробелы (отступы).
-    Экранирует HTML-спецсимволы ПЕРЕД подсчётом отступа, чтобы не задвоить
-    экранирование и не терять реальные пробелы.
+    """Return a code paragraph preserving line breaks and leading spaces.
+
+    Escape ``&``, ``<``, and ``>`` so code is rendered as literal text.
+    Use the shared Code style unless a truthy ``style`` is supplied.
     """
     lines = []
     for ln in code_text.split("\n"):
@@ -163,11 +165,12 @@ def code_block(code_text, style=None):
 
 
 def wrap_cells(rows):
-    """
-    Оборачивает каждую ячейку таблицы в Paragraph, чтобы длинный текст
-    переносился внутри своей колонки, а не "наезжал" на соседнюю
-    (обычные строки в Table не переносятся по словам).
-    Первая строка считается заголовком (жирный белый текст на цветном фоне).
+    """Return new rows of wrapping paragraphs, converting each cell to text.
+
+    The first row uses bold white header text; later rows use body cell text.
+    Set background colors on the enclosing table. Cell text is parsed as
+    ReportLab paragraph markup; malformed markup can raise ValueError.
+    Empty input returns an empty list.
     """
     out = []
     for i, row in enumerate(rows):
@@ -177,10 +180,22 @@ def wrap_cells(rows):
 
 
 def note_block(text, label="Примечание"):
+    """Return a note paragraph prefixed by a bold ``label`` and a period.
+
+    ``text`` and ``label`` accept ReportLab paragraph markup without escaping.
+    Malformed markup can raise ValueError.
+    """
     return Paragraph(f"<b>{label}.</b> {text}", _STYLES["Note"])
 
 
 def h_section(number, title, level_color=None, level_text=None):
+    """Return a numbered heading, optionally paired with a level badge.
+
+    With ``level_color=None``, return a paragraph and ignore ``level_text``.
+    Otherwise, return a table using ``level_text`` and ``level_color`` for
+    the badge. The heading accepts ReportLab paragraph markup; malformed
+    markup can raise ValueError.
+    """
     if level_color is None:
         return Paragraph(f"{number}. {title}", _STYLES["H1"])
     left = Paragraph(f"{number}. {title}", _STYLES["H1"])
@@ -198,6 +213,13 @@ def h_section(number, title, level_color=None, level_text=None):
 
 
 def cover_page(vol_num, vol_tag, title, subtitle, level_range, color):
+    """Return cover flowables ending with a page break.
+
+    ``vol_num`` labels the volume, ``color`` colors its badge and divider,
+    and ``level_range`` is the displayed reading level. ``vol_tag`` is unused.
+    Title, subtitle, and level text accept ReportLab paragraph markup;
+    malformed markup can raise ValueError.
+    """
     flow = []
     flow.append(Spacer(1, 55 * mm))
     tag_table = Table([[f"КНИГА {vol_num}"]], colWidths=[40 * mm], rowHeights=[9 * mm])
@@ -227,14 +249,22 @@ class PageNumCanvas(pdfcanvas.Canvas):
     book_short_tag = ""
 
     def __init__(self, *args, **kwargs):
+        """Initialize a ReportLab canvas with an empty queue of completed pages."""
         super().__init__(*args, **kwargs)
         self._saved_page_states = []
 
     def showPage(self):
+        """Queue the current page and start a new one, deferring PDF output."""
         self._saved_page_states.append(dict(self.__dict__))
         self._startPage()
 
     def save(self):
+        """Write pages queued by ``showPage`` to the PDF, adding footers.
+
+        The final page must be queued before calling this method. Output
+        OSError exceptions and RuntimeError from saving more than once
+        propagate to the caller.
+        """
         num_pages = len(self._saved_page_states)
         for i, state in enumerate(self._saved_page_states):
             self.__dict__.update(state)
@@ -243,6 +273,11 @@ class PageNumCanvas(pdfcanvas.Canvas):
         super().save()
 
     def draw_footer(self, page_num, total_pages):
+        """Draw the book tag and page number, leaving page 1 without a footer.
+
+        ``page_num`` counts from 1, including the cover; ``total_pages`` is unused.
+        The footer uses fixed A4 coordinates and changes the canvas drawing state.
+        """
         if page_num == 1:
             return
         self.setStrokeColor(CODE_LN)
@@ -255,6 +290,7 @@ class PageNumCanvas(pdfcanvas.Canvas):
 
 
 def make_canvas_factory(book_short_tag):
+    """Return a PageNumCanvas subclass using ``book_short_tag`` in its footers."""
     class _Canvas(PageNumCanvas):
         pass
     _Canvas.book_short_tag = book_short_tag
@@ -262,6 +298,13 @@ def make_canvas_factory(book_short_tag):
 
 
 def build_book(filename, title, subtitle, vol_tag, story, book_short_tag):
+    """Write ``story`` to an A4 PDF with book footers and ``title`` metadata.
+
+    ``filename`` is an output filename or writable binary stream. Building
+    consumes the mutable flowable list ``story``. ``book_short_tag`` appears
+    in footers after the cover; ``subtitle`` and ``vol_tag`` are unused.
+    ReportLab LayoutError and output OSError exceptions propagate to callers.
+    """
     doc = SimpleDocTemplate(
         filename, pagesize=A4,
         topMargin=18 * mm, bottomMargin=20 * mm,
