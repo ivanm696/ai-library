@@ -44,8 +44,8 @@ story.append(code_block(
     "    for batch in training_data:\n"
     "        predictions = model.forward(batch.inputs)\n"
     "        loss = loss_function(predictions, batch.targets)\n"
-    "        gradients = loss.backward()          # обратное распространение\n"
-    "        optimizer.step(gradients)            # обновление весов\n"
+        "        loss.backward()                       # обратное распространение\n"
+        "        optimizer.step()                     # обновление весов\n"
     "        optimizer.zero_grad()"))
 story.append(Paragraph(
     "Обратное распространение использует правило цепочки (chain rule) из математического анализа, "
