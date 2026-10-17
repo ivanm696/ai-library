@@ -28,8 +28,13 @@ FONT_DIR = "/usr/share/fonts/truetype/dejavu"
 pdfmetrics.registerFont(TTFont("DejaVu", os.path.join(FONT_DIR, "DejaVuSans.ttf")))
 pdfmetrics.registerFont(TTFont("DejaVu-Bold", os.path.join(FONT_DIR, "DejaVuSans-Bold.ttf")))
 pdfmetrics.registerFont(TTFont("DejaVu-Oblique", os.path.join(FONT_DIR, "DejaVuSans-Oblique.ttf")))
+pdfmetrics.registerFont(TTFont("DejaVu-BoldOblique", os.path.join(FONT_DIR, "DejaVuSans-BoldOblique.ttf")))
 pdfmetrics.registerFont(TTFont("DejaVuMono", os.path.join(FONT_DIR, "DejaVuSansMono.ttf")))
 pdfmetrics.registerFont(TTFont("DejaVuMono-Bold", os.path.join(FONT_DIR, "DejaVuSansMono-Bold.ttf")))
+pdfmetrics.registerFontFamily(
+    "DejaVu", normal="DejaVu", bold="DejaVu-Bold",
+    italic="DejaVu-Oblique", boldItalic="DejaVu-BoldOblique",
+)
 
 # ----------------------------------------------------------------------
 # Палитра
